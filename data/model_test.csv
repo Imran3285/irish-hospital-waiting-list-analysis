@@ -1,0 +1,3 @@
+list,random_forest_error_pct,naive_error_pct
+Outpatient,0.49,1.03
+Inpatient/Day Case,0.87,0.49
