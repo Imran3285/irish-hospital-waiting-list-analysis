@@ -1,6 +1,14 @@
 # 🏥 Irish Healthcare Waiting List Intelligence & Demand Forecasting
 
-A data analytics and machine learning project using public open data from the National Treatment Purchase Fund (NTPF) to understand how Irish hospital waiting lists have changed since 2021, and to forecast where the outpatient list is heading next.
+A data analytics and machine learning project using public open data from the National Treatment Purchase Fund (NTPF) to understand how Irish hospital waiting lists have changed since 2021, measure them against national waiting-time targets, and forecast where they are heading next.
+
+## 📌 Executive Summary
+
+- **The outpatient list is at its highest since 2021: 692,524** (Sep 2026), up 10.5% in a year and 24.3% since its December 2024 low.
+- **Waits fell sharply from 2021 to 2024, but progress has stalled.** Only **82%** of outpatients wait under 12 months, against the **90% national target**: **55,442 outpatients** would need to be seen sooner to close the gap.
+- **The estimated average wait is ~7.3 months** for both lists, against a **5.5-month target** for 2026, and has risen since December 2024.
+- **Holt-Winters beat three other models** in a 13-origin backtest, with 0.46% error one month ahead and 4.3% six months ahead for outpatients. It forecasts **~678,000 outpatients by March 2027 (80% range: 640k–716k)**, including the usual December dip.
+- **Pressure is concentrated** in Orthopaedics, Cardiology and Ophthalmology (large and growing) and Dermatology and Endocrinology (most long waiters).
 
 ## 🎯 The Problem
 
@@ -55,20 +63,51 @@ NTPF publishes separate yearly CSV files, and the format has changed over the ye
 - Share of long waiters over time
 - Top 15 specialties and top 12 hospitals by patients waiting, with change since September 2025
 
-### Forecasting Model
+### Forecasting: Model Comparison
 
-Built a **Random Forest** model to forecast the outpatient list 6 months ahead.
+The forecast is chosen by **testing four models on the same data** rather than assuming one:
 
-**Why model the monthly change, not the total?** A Random Forest cannot predict values outside the range it was trained on. The list hit a record high in 2026, so a model trained on the total would always under-forecast. The model predicts the month-to-month change instead, which is added to the last known figure.
+| Model | How it forecasts |
+|---|---|
+| Naive | Next month = this month (the baseline any model must beat) |
+| Drift | This month + the average monthly change so far |
+| **Holt-Winters** | Smoothed level + trend + **12-month seasonality** (parameters fitted with SciPy) |
+| Random Forest | Predicts the **month-to-month change** from lagged changes, a 3-month rolling mean and calendar month |
 
-**How it was tested:** walk-forward validation on the last 6 months. Each month was predicted using only the months before it, then compared with a simple baseline (repeat last month's figure). A model only adds value if it beats that baseline.
+**Why the Random Forest models the change, not the total:** a Random Forest cannot predict values outside the range it was trained on, and the list is at a record high, so a model trained on the total would always under-forecast.
 
-| Waiting List | Random Forest Error | Repeat-Last-Month Error | Result |
-|---|---|---|---|
-| Outpatient | **0.49%** | 1.03% | ✅ Model halves the error |
-| Inpatient/Day Case | 0.87% | **0.49%** | ❌ Baseline is better |
+**How the models were tested: rolling-origin backtest.** Each model forecast 1–6 months ahead from **13 different starting points**, using only the data available at that point, and was scored against what actually happened.
 
-For inpatient/day case, the list changes so steadily that repeating last month is already very accurate. I report this rather than hide it: knowing when a model does *not* help is as important as knowing when it does.
+| Mean absolute % error | 1 month ahead | 3 months | 6 months | Average (1–6) |
+|---|---|---|---|---|
+| **Outpatient – Holt-Winters** ✅ | **0.46%** | **1.65%** | **4.26%** | **2.21%** |
+| Outpatient – Random Forest | 0.90% | 2.81% | 5.28% | 3.19% |
+| Outpatient – Naive | 1.34% | 3.37% | 5.57% | 3.63% |
+| **Inpatient/Day Case – Holt-Winters** ✅ | **1.30%** | **2.29%** | **3.18%** | **2.35%** |
+| Inpatient/Day Case – Random Forest | 1.50% | 3.61% | 5.30% | 3.73% |
+| Inpatient/Day Case – Naive | 1.64% | 3.78% | 6.73% | 4.22% |
+
+Full results for all models are in [`data/model_comparison.csv`](data/model_comparison.csv).
+
+![Model comparison](images/07_model_comparison.png)
+
+**Holt-Winters wins at every horizon for both lists** because it captures the seasonal December dip that the other models miss.
+
+> An earlier version of this project used only the Random Forest, tested one month ahead over 6 months (0.49% error). Extending the test to 13 origins and 6-month horizons showed Holt-Winters is more accurate over the planning horizon that matters, so the forecast now uses it. Testing more broadly changed the answer, which is the point of testing.
+
+**Prediction intervals.** Each forecast comes with **80% and 95% ranges** built from the selected model's own backtest errors at each horizon (no distribution assumed). Uncertainty widens from about ±1% one month ahead to about ±6% six months ahead.
+
+### Benchmarking Against National Targets
+
+Healthcare managers judge waiting lists against national targets, so the data was measured against the targets that can be calculated from it:
+
+| Target | Source | Measured as |
+|---|---|---|
+| 90% of outpatients waiting under 12 months | Waiting List Action Plan 2025 | (0–6 + 6–12 month bands) ÷ total |
+| Weighted average wait under 5.5 months (OPD and IPDC) | Waiting Time Action Plan 2026 | Band midpoints 3, 9, 15 and 24 months, weighted by patients |
+| Sláintecare maximums: 10 weeks (OPD), 12 weeks (IPDC) | Sláintecare Report 2017 | **Not measurable** with 6-month bands; the 0–6 month share is an upper bound |
+
+**Validation of the estimate:** for December 2025 the estimated outpatient weighted average is **7.0 months**, against **6.8 months** published by the Department of Health. In September 2021 it underestimates (11.5 vs 12.8 months published), because long waiters then waited well beyond the 24-month assumption, so early figures are treated as a lower bound.
 
 ## Key Findings
 
@@ -89,11 +128,25 @@ Waits are getting shorter, but more people are joining the list than are being s
 
 ![Long wait share](images/02_long_wait_share.png)
 
-### 3. Inpatient & Day Case Pressure Is Rising Fastest
+### 3. Progress Towards National Targets Has Stalled
+
+| Measure (Sep 2026) | Outpatient | Inpatient/Day Case | Target |
+|---|---|---|---|
+| % waiting under 12 months | **82.0%** (Dec 2024: 83.9%) | **82.0%** (Dec 2024: 85.9%) | 90% (set for outpatients; applied to both for comparison) |
+| Patients to move under 12 months to reach 90% | **55,442** | **9,204** | 0 |
+| Estimated weighted average wait | **7.3 months** (Dec 2024: 7.0) | **7.3 months** (Dec 2024: 6.5) | under 5.5 months |
+| % waiting under 6 months (upper bound for the 10/12-week maximums) | 58.8% | 59.0% | 100% |
+
+- From 2021 to 2024, the share waiting under 12 months rose from 57% to 84% for outpatients, a major improvement.
+- **Since December 2024 it has slipped back** on both lists, and the average wait has started rising again, because the list is growing faster than it is being cleared.
+
+![Targets benchmark](images/08_targets_benchmark.png)
+
+### 4. Inpatient & Day Case Pressure Is Rising Fastest
 
 - Inpatient/day case list: **76,975 → 114,722**, up **49%** since April 2021 and **14.7%** in the last year
 
-### 4. Pressure Is Concentrated in a Few Specialties
+### 5. Pressure Is Concentrated in a Few Specialties
 
 | Specialty | Waiting (Sep 2026) | % Over 12 Months | Change in a Year |
 |---|---|---|---|
@@ -109,16 +162,24 @@ Waits are getting shorter, but more people are joining the list than are being s
 
 ![Top specialties](images/03_top_specialties.png)
 
-### 5. Hospitals Under Most Pressure
+### 6. Hospitals Under Most Pressure
 
 - **Beaumont Hospital** has the most outpatients waiting (56,012), up 18.5% in a year
 - **Midland Regional Hospital Tullamore** grew fastest among the top 12 (up 37.9%), followed by Tallaght (26.0%) and Limerick (24.7%)
 
-### 6. Forecast
+### 7. Forecast: The List Stays Near Record Levels
 
-The model forecasts around **705,000 outpatients waiting by March 2027**. It also picks up a pattern in the history: the list dips every December, then rises again in the new year.
+| Month | Outpatient forecast | 80% range | Inpatient/Day Case forecast | 80% range |
+|---|---|---|---|---|
+| Oct 2026 | 686,763 | 680k – 693k | 117,601 | 115k – 120k |
+| Dec 2026 | 663,583 | 648k – 679k | 120,040 | 116k – 124k |
+| Mar 2027 | **677,898** | **640k – 716k** | **124,461** | **117k – 131k** |
 
-![Forecast](images/04_outpatient_forecast.png)
+- The **outpatient list is expected to dip in December** (the seasonal pattern seen every year), then rise again, staying near **680,000**.
+- The **inpatient/day case list keeps growing**, to about **124,000 by March 2027**.
+- Full figures: [`data/forecast_with_intervals.csv`](data/forecast_with_intervals.csv).
+
+![Outpatient forecast](images/05_op_forecast_intervals.png)
 
 ## 💡 Recommendations
 
@@ -128,11 +189,14 @@ Orthopaedics, Cardiology and Ophthalmology are both large and growing by 12–17
 **Priority 2: Clear long waiters in Dermatology and Endocrinology**
 These specialties have the highest share of patients waiting over a year. Targeted validation and treatment initiatives would reduce the longest waits fastest.
 
-**Priority 3: Look at demand, not just delivery**
+**Priority 3: Focus on the 12–18 month band to recover the 90% target**
+55,442 outpatients and 9,204 inpatient/day case patients separate the current position from the 90% target. Treating patients before they cross 12 months, starting with the 12–18 month band, is the most direct route back towards it.
+
+**Priority 4: Look at demand, not just delivery**
 Long waits are falling while the list grows, which suggests referrals are outpacing capacity. Combining this data with referral and activity data would show where demand is coming from.
 
-**Priority 4: Use forecasting for planning**
-A monthly forecast lets hospitals plan staff, theatre time and budget ahead of demand, rather than reacting once lists have already grown.
+**Priority 5: Plan with ranges, not single numbers**
+The forecast's 80% range lets hospitals plan staff, theatre time and budget for a realistic best and worst case, rather than reacting once lists have already grown.
 
 ## 🌱 Why This Project Matters
 
@@ -142,6 +206,8 @@ This project shows:
 - How to build a clean, consistent dataset from files whose format changes over time
 - Why a model must be tested against a simple baseline, and reported honestly when it does not beat it
 - How to choose the right modelling target (monthly change) when the data is at record levels
+- How to compare several models fairly with a rolling-origin backtest, and report uncertainty as prediction intervals
+- How to measure performance against the national targets that managers are held to, and validate an estimate against published figures
 - How to turn analysis into clear findings and recommendations for non-technical readers
 
 ## ⚠️ Limitations
@@ -149,6 +215,9 @@ This project shows:
 - NTPF publishes snapshots of patients **waiting**, not referrals or patients treated, so the model forecasts list size, not demand
 - 65 months is a short history. Accuracy was tested one month ahead; uncertainty grows over a 6-month horizon
 - Specialty and hospital views cover the largest entries only
+- The weighted average wait is an **estimate** from 6-month bands (18+ months assumed to be 24 months). It is within 0.2 months of the published figure for December 2025 but underestimates earlier periods
+- The 10-week and 12-week Sláintecare maximums cannot be measured from 6-month bands
+- Prediction intervals come from 13 backtest errors per horizon, so the 95% range is close to the worst error observed and may understate rare shocks
 
 ## 📓 View the Full Analysis
 
@@ -162,13 +231,17 @@ Click `notebooks/irish_waiting_list_analysis.ipynb` to see the full analysis wit
 │   ├── op_specialty_sep2026.csv      ← Top 15 outpatient specialties
 │   ├── ipdc_specialty_sep2026.csv    ← Top 12 inpatient/day case specialties
 │   ├── op_hospital_sep2026.csv       ← Top 12 hospitals by outpatients waiting
-│   ├── forecast_oct2026_mar2027.csv  ← 6-month forecast
-│   └── model_test.csv                ← Model vs baseline test results
+│   ├── forecast_with_intervals.csv   ← 6-month forecast with 80% / 95% intervals (selected model)
+│   ├── model_comparison.csv          ← Backtest error by model and horizon
+│   ├── target_benchmark.csv          ← Monthly performance against national targets
+│   ├── forecast_oct2026_mar2027.csv  ← Earlier Random Forest-only forecast (superseded)
+│   └── model_test.csv                ← Earlier Random Forest vs baseline test
 ├── images/                           ← Chart outputs
 ├── notebooks/
 │   └── irish_waiting_list_analysis.ipynb  ← Analysis and forecasting notebook
 ├── src/
-│   └── analysis.py                   ← Full pipeline from the raw NTPF files
+│   ├── analysis.py                   ← Full pipeline from the raw NTPF files
+│   └── forecast_and_targets.py       ← Model comparison, prediction intervals, target benchmarking
 └── README.md
 ```
 
@@ -183,11 +256,26 @@ jupyter notebook notebooks/irish_waiting_list_analysis.ipynb
 
 Run all cells top to bottom. The random seed is fixed at 42, so results are reproducible.
 
+The model comparison, forecast intervals and target benchmark run directly from the summary data in this repository:
+
+```
+pip install pandas numpy scipy scikit-learn matplotlib
+python src/forecast_and_targets.py
+```
+
 To rebuild from the raw data, download the NTPF files (`OpenData_OPNational01/02`, `OpenData_IPDCNational01/02`) into a `raw_data/` folder and run `python src/analysis.py`.
 
 ## Stack
 
-Python · Pandas · NumPy · scikit-learn · Matplotlib · Jupyter Notebook
+Python · Pandas · NumPy · SciPy · scikit-learn · Matplotlib · Jupyter Notebook
+
+## References
+
+- NTPF Open Data – [ntpf.ie/waiting-list-data/open-data](https://www.ntpf.ie/waiting-list-data/open-data/)
+- Department of Health – [Waiting List Action Plan 2025](https://www.gov.ie/en/department-of-health/press-releases/minister-carroll-macneill-publishes-the-waiting-list-action-plan-2025/) and [Waiting Time Action Plan 2026](https://www.gov.ie/en/department-of-health/press-releases/minister-for-health-publishes-the-waiting-time-action-plan-2026)
+- Department of Health – [Monthly waiting list figures, January 2026](https://www.gov.ie/en/department-of-health/press-releases/monthly-waiting-list-figures-january-2026) (Sláintecare maximum wait times)
+- The Irish Times – [Health service failed to meet goal for cuts to hospital waiting lists in 2025](https://www.irishtimes.com/health/2026/01/09/health-service-failed-to-meet-goal-for-cuts-to-hospital-waiting-lists-in-2025/) (90% under-12-months target)
+- Medical Independent – [WTAP 2026 targets](https://www.medicalindependent.ie/2026/01/30/the-implementation-of-the-new-the-waiting-time-action-plan-wtap-2026-will-be-overseen-by-the-waiting-list-task-force/) and [published weighted average wait times](https://www.medicalindependent.ie/2026/02/09/high-demand-slows-progress-on-waiting-lists/)
 
 ## Author
 
