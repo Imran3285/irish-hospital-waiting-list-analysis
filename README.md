@@ -204,7 +204,7 @@ Long waits are falling while the list grows, which suggests referrals are outpac
 **Priority 5: Plan with ranges, not single numbers**
 The forecast's 80% range lets hospitals plan staff, theatre time and budget for a realistic best and worst case, rather than reacting once lists have already grown.
 
-## 🌱 Why This Project Matters
+## ➕ Why This Project Matters
 
 This project shows:
 
@@ -216,7 +216,7 @@ This project shows:
 - How to measure performance against the national targets that managers are held to, and validate an estimate against published figures
 - How to turn analysis into clear findings and recommendations for non-technical readers
 
-## ⚠️ Limitations
+## 💡 Limitations
 
 - NTPF publishes snapshots of patients **waiting**, not referrals or patients treated, so the model forecasts list size, not demand
 - 65 months is a short history. Accuracy was tested one month ahead; uncertainty grows over a 6-month horizon
