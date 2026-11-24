@@ -8,12 +8,7 @@ import matplotlib.dates as mdates
 import pandas as pd
 from matplotlib.gridspec import GridSpec
 
-BLUE, BLUE_LIGHT = "#2a78d6", "#a9c8ef"
-INK, INK2, GRID, SURFACE = "#0b0b0b", "#52514e", "#e6e5e1", "#fcfcfb"
-TARGET = "#52514e"
-plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 10,
-                     "axes.edgecolor": GRID, "axes.labelcolor": INK2,
-                     "xtick.color": INK2, "ytick.color": INK2})
+from chart_style import BLUE, BLUE_80 as BLUE_LIGHT, INK, INK2, GRID, SURFACE, TARGET  # shared look
 
 nat = pd.read_csv("data/national_monthly.csv", parse_dates=["month"])
 tgt = pd.read_csv("data/target_benchmark.csv", parse_dates=["month"])

@@ -248,6 +248,8 @@ Click `notebooks/irish_waiting_list_analysis.ipynb` to see the full analysis wit
 ├── src/
 │   ├── analysis.py                   ← Full pipeline from the raw NTPF files
 │   ├── forecast_and_targets.py       ← Model comparison, prediction intervals, target benchmarking
+│   ├── chart_style.py                ← Shared colours, fonts and layout for every chart
+│   ├── charts.py                     ← Draws all README charts in one consistent style
 │   └── dashboard.py                  ← One-page dashboard (images/00_dashboard.png)
 └── README.md
 ```
@@ -268,6 +270,7 @@ The model comparison, forecast intervals and target benchmark run directly from 
 ```
 pip install pandas numpy scipy scikit-learn matplotlib
 python src/forecast_and_targets.py
+python src/charts.py
 python src/dashboard.py
 ```
 
