@@ -10,6 +10,12 @@ A data analytics and machine learning project using public open data from the Na
 - **Holt-Winters beat three other models** in a 13-origin backtest, with 0.46% error one month ahead and 4.3% six months ahead for outpatients. It forecasts **~678,000 outpatients by March 2027 (80% range: 640k–716k)**, including the usual December dip.
 - **Pressure is concentrated** in Orthopaedics, Cardiology and Ophthalmology (large and growing) and Dermatology and Endocrinology (most long waiters).
 
+## 📊 Dashboard
+
+One page with the headline KPIs, the trend and forecast, progress against the 90% target, and where pressure is concentrated by specialty and hospital. Built in Python (Matplotlib) by [`src/dashboard.py`](src/dashboard.py) from the tables in `data/`, so it refreshes when the data is updated.
+
+![Waiting list dashboard](images/00_dashboard.png)
+
 ## 🎯 The Problem
 
 Waiting lists are one of the biggest pressures on the Irish public health system. Hundreds of thousands of patients are waiting for a first outpatient appointment or a hospital procedure at any one time.
@@ -241,7 +247,8 @@ Click `notebooks/irish_waiting_list_analysis.ipynb` to see the full analysis wit
 │   └── irish_waiting_list_analysis.ipynb  ← Analysis and forecasting notebook
 ├── src/
 │   ├── analysis.py                   ← Full pipeline from the raw NTPF files
-│   └── forecast_and_targets.py       ← Model comparison, prediction intervals, target benchmarking
+│   ├── forecast_and_targets.py       ← Model comparison, prediction intervals, target benchmarking
+│   └── dashboard.py                  ← One-page dashboard (images/00_dashboard.png)
 └── README.md
 ```
 
@@ -261,6 +268,7 @@ The model comparison, forecast intervals and target benchmark run directly from 
 ```
 pip install pandas numpy scipy scikit-learn matplotlib
 python src/forecast_and_targets.py
+python src/dashboard.py
 ```
 
 To rebuild from the raw data, download the NTPF files (`OpenData_OPNational01/02`, `OpenData_IPDCNational01/02`) into a `raw_data/` folder and run `python src/analysis.py`.
