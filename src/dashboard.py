@@ -8,7 +8,7 @@ import matplotlib.dates as mdates
 import pandas as pd
 from matplotlib.gridspec import GridSpec
 
-from chart_style import BLUE, BLUE_80 as BLUE_LIGHT, INK, INK2, GRID, SURFACE, TARGET  # shared look
+from chart_style import BLUE, FORECAST, FORECAST_80 as BLUE_LIGHT, INK, INK2, GRID, SURFACE, TARGET  # shared look
 
 nat = pd.read_csv("data/national_monthly.csv", parse_dates=["month"])
 tgt = pd.read_csv("data/target_benchmark.csv", parse_dates=["month"])
@@ -60,9 +60,9 @@ def tidy(ax, title):
 # Trend + forecast
 ax = fig.add_axes([0.06, 0.44, 0.62, 0.26]); tidy(ax, "Outpatient list since 2021, with forecast to March 2027 (80% range)")
 ax.plot(nat.month, nat.op_total / 1000, color=BLUE, lw=2.2)
-ax.fill_between(fc_op.month, fc_op.lower_80 / 1000, fc_op.upper_80 / 1000, color=BLUE_LIGHT, alpha=0.45, lw=0)
+ax.fill_between(fc_op.month, fc_op.lower_80 / 1000, fc_op.upper_80 / 1000, color=BLUE_LIGHT, lw=0)
 ax.plot(pd.concat([nat.month.tail(1), fc_op.month]), pd.concat([nat.op_total.tail(1), fc_op.forecast]) / 1000,
-        color=BLUE, lw=2, ls="--")
+        color=FORECAST, lw=2.2, ls="--")
 low = nat.loc[nat.op_total.idxmin()]
 ax.scatter([low.month, last.month], [low.op_total / 1000, last.op_total / 1000], color=BLUE, s=36, zorder=3,
            edgecolor=SURFACE, linewidth=1.5)

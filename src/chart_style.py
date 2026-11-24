@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 BLUE = "#2a78d6"          # the one accent: the series the title is about
-BLUE_80 = "#a9c8ef"       # 80% prediction range
-BLUE_95 = "#d6e5f7"       # 95% prediction range
+FORECAST = "#6250d6"      # forecasts: violet, so they stand apart from actual data
+FORECAST_80 = "#c3bdf0"   # 80% prediction range
+FORECAST_95 = "#e4e1f9"   # 95% prediction range
 GREY = "#8d8b85"          # comparison series
 GREY_LIGHT = "#c9c7c1"    # background bars / minor series
 INK, INK2 = "#0b0b0b", "#52514e"

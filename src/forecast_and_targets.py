@@ -180,55 +180,11 @@ def part_a(d):
                               "forecast": round(point[i]),
                               "lower_80": round(point[i] * (1 - q80[i])), "upper_80": round(point[i] * (1 + q80[i])),
                               "lower_95": round(point[i] * (1 - q95[i])), "upper_95": round(point[i] * (1 + q95[i]))})
-        plot_forecast(d, key, label, best, pd.DataFrame([f for f in forecasts if f["list"] == label]))
     summary = pd.DataFrame(summary)
     forecasts = pd.DataFrame(forecasts)
     summary.to_csv(f"{OUT}/model_comparison.csv", index=False)
     forecasts.to_csv(f"{OUT}/forecast_with_intervals.csv", index=False)
-    plot_model_comparison(summary)
     return summary, forecasts
-
-
-def plot_forecast(d, key, label, model, fc):
-    hist = d[f"{key}_total"]
-    x_hist = hist.index.to_timestamp()
-    x_fc = pd.PeriodIndex(fc["month"], freq="M").to_timestamp()
-    fig, ax = plt.subplots(figsize=(10, 4.8))
-    ax.plot(x_hist, hist.values / 1000, color="#1f4e79", lw=2, label="Actual")
-    ax.fill_between(x_fc, fc["lower_95"] / 1000, fc["upper_95"] / 1000, color="#f4a261", alpha=0.25, label="95% interval")
-    ax.fill_between(x_fc, fc["lower_80"] / 1000, fc["upper_80"] / 1000, color="#f4a261", alpha=0.45, label="80% interval")
-    ax.plot(x_fc, fc["forecast"] / 1000, color="#e76f51", lw=2, ls="--", marker="o", ms=3, label=f"Forecast ({model})")
-    ax.set_title(f"{label} waiting list: 6-month forecast with prediction intervals", fontsize=12, loc="left")
-    ax.set_ylabel("Patients waiting (thousands)")
-    ax.grid(alpha=0.3)
-    ax.legend(frameon=False, loc="upper left")
-    for s in ("top", "right"):
-        ax.spines[s].set_visible(False)
-    fig.tight_layout()
-    fig.savefig(f"{IMG}/0{5 if key == 'op' else 6}_{key}_forecast_intervals.png", dpi=150)
-    plt.close(fig)
-
-
-def plot_model_comparison(summary):
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2), sharey=False)
-    colors = {"Naive": "#9e9e9e", "Drift": "#90a4ae", "Holt-Winters": "#2a9d8f", "Random Forest": "#1f4e79"}
-    for ax, label in zip(axes, LISTS.values()):
-        s = summary[summary.list == label]
-        for _, r in s.iterrows():
-            vals = [r[f"mape_h{h}"] for h in range(1, H + 1)]
-            ax.plot(range(1, H + 1), vals, marker="o", lw=2.5 if r["selected"] else 1.5,
-                    color=colors[r["model"]], label=r["model"] + (" (selected)" if r["selected"] else ""))
-        ax.set_title(label, loc="left", fontsize=11)
-        ax.set_xlabel("Months ahead")
-        ax.set_ylabel("Mean absolute % error")
-        ax.grid(alpha=0.3)
-        ax.legend(frameon=False, fontsize=8)
-        for sp in ("top", "right"):
-            ax.spines[sp].set_visible(False)
-    fig.suptitle("Forecast error by horizon - rolling-origin backtest (13 origins)", x=0.01, ha="left", fontsize=12)
-    fig.tight_layout()
-    fig.savefig(f"{IMG}/07_model_comparison.png", dpi=150)
-    plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -249,33 +205,7 @@ def part_b(d, missing):
         out[f"{key}_gap_to_90pct"] = np.ceil(np.maximum(0, 0.9 * tot - (b[f"{key}_0_6"] + b[f"{key}_6_12"]))).astype(int)
     out.index.name = "month"
     out.to_csv(f"{OUT}/target_benchmark.csv")
-    plot_targets(out)
     return out
-
-
-def plot_targets(t):
-    x = pd.PeriodIndex(t.index, freq="M").to_timestamp()
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4))
-    ax = axes[0]
-    ax.plot(x, t["op_pct_under_12m"], color="#1f4e79", lw=2, label="Outpatient")
-    ax.plot(x, t["ipdc_pct_under_12m"], color="#2a9d8f", lw=2, label="Inpatient/Day Case")
-    ax.axhline(90, color="#e76f51", ls="--", lw=1.5, label="Target: 90% under 12 months")
-    ax.set_title("% of patients waiting under 12 months", loc="left", fontsize=11)
-    ax.set_ylim(50, 100)
-    ax = axes[1]
-    ax.plot(x, t["op_weighted_avg_wait_months"], color="#1f4e79", lw=2, label="Outpatient (estimated)")
-    ax.plot(x, t["ipdc_weighted_avg_wait_months"], color="#2a9d8f", lw=2, label="Inpatient/Day Case (estimated)")
-    ax.axhline(5.5, color="#e76f51", ls="--", lw=1.5, label="Target: under 5.5 months")
-    ax.set_title("Weighted average wait (months)", loc="left", fontsize=11)
-    for ax in axes:
-        ax.grid(alpha=0.3)
-        ax.legend(frameon=False, fontsize=8)
-        for sp in ("top", "right"):
-            ax.spines[sp].set_visible(False)
-    fig.suptitle("Performance against national waiting-time targets", x=0.01, ha="left", fontsize=12)
-    fig.tight_layout()
-    fig.savefig(f"{IMG}/08_targets_benchmark.png", dpi=150)
-    plt.close(fig)
 
 
 if __name__ == "__main__":
@@ -286,3 +216,7 @@ if __name__ == "__main__":
     print(fc.to_string(index=False))
     targets = part_b(data, missing_months)
     print(targets.loc[["2021-09", "2024-12", "2025-12", "2026-09"]].T.to_string())
+
+    # all charts are drawn by charts.py so they share one style
+    import charts
+    charts.main()
