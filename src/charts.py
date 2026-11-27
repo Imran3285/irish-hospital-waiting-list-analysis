@@ -86,9 +86,9 @@ def forecast_intervals(nat, fc, label, hist_col, path, ylim):
 
 
 def rf_forecast(hist_x, hist_y, fc_x, fc_y, path):
-    """Earlier Random Forest-only forecast (superseded by Holt-Winters)."""
-    fig, ax = new_figure(f"Earlier Random Forest forecast: about {fc_y.iloc[-1] / 1000:,.0f}k by {fc_x.iloc[-1]:%B %Y}",
-                         "Outpatient list, actual and 6-month forecast. Superseded by the Holt-Winters forecast")
+    """Random Forest 6-month outpatient forecast."""
+    fig, ax = new_figure(f"Random Forest forecast: about {fc_y.iloc[-1] / 1000:,.0f}k by {fc_x.iloc[-1]:%B %Y}",
+                         "Outpatient list, actual and 6-month forecast")
     _forecast_axes(ax, hist_x, hist_y / 1000, (520, 740))
     ax.plot(pd.concat([hist_x.tail(1), fc_x]), pd.concat([hist_y.tail(1), fc_y]) / 1000,
             color=FORECAST, lw=2.2, ls="--", label="Forecast")
